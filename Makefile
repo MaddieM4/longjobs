@@ -8,3 +8,4 @@ all:
 install:
 	mkdir -p $(out)/bin/
 	cp longjobs $(out)/bin/
+	cp i3status_prepend $(out)/bin/i3status_prepend_longjobs

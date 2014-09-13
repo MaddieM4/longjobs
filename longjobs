@@ -104,8 +104,10 @@ add_pgrep() {
 }
 
 oneline_output() {
-    sed -e 's/^ *//' -e 's/^1 //' | tr '\n' ',' | sed -e 's/,$//' -e 's/,/, /g'
-    echo
+    line=$(sed -e 's/^ *//' -e 's/^1 //' | tr '\n' ',' | sed -e 's/,$//' -e 's/,/, /g')
+    if [[ -n "$line" ]]; then
+        echo $line
+    fi
 }
 
 process_options() {
