@@ -1,0 +1,143 @@
+#!/usr/bin/env bash
+set -e
+
+# Print usage info and abort
+usage() {
+    cat >&2 <<EOF
+USAGE:
+  longjobs                        # Print a list of running jobs
+  longjobs -h                     # Show this message
+  longjobs -p 4598 name           # Add a pid watch with a name
+  longjobs -g nix-build nix-build # Add a pgrep watch
+  longjobs -c                     # Clear all watches
+  longjobs -o                     # Print with one-line output
+EOF
+    exit 1
+}
+
+# Create directory if it doesn't exist
+if [[ ! -d ~/.longjobs ]]; then
+    mkdir ~/.longjobs
+fi
+
+# Set default options.
+SHOULD_OUTPUT_WATCH=1
+ONELINE_OUTPUT=0
+
+# Function to add a single label to accumulator N times
+accumulate() {
+    label="$1"; shift
+    count="$1"; shift
+    while [[ $count -gt 0 ]]; do
+        echo "$label" >> ~/.longjobs/accumulator
+        count=$(( count-1 ));
+    done
+}
+
+# Remove all watchfiles.
+clear_watches() {
+    SHOULD_OUTPUT_WATCH=0
+    rm -f ~/.longjobs/*.pid
+    rm -f ~/.longjobs/*.pgrep
+    echo "All watches cleared"
+}
+
+# Process PID watches
+watch_pids() {
+    if [[ -n $(find ~/.longjobs/ -name '*.pid') ]]; then
+        for pidfile in ~/.longjobs/*.pid; do
+            # echo "testing pidfile $pidfile" >&2
+            label="$(basename $pidfile .pid)"
+            pid=$(head -1 $pidfile | grep -o '[[:digit:]]\+' || true)
+            if [[ -z "$pid" ]]; then
+                continue
+            fi
+            if (ps "$pid" > /dev/null); then
+                accumulate "$label" 1
+            fi
+        done
+    fi
+}
+
+# Process pgrep watches
+watch_pgreps() {
+    if [[ -n $(find ~/.longjobs/ -name '*.pgrep') ]]; then
+        for pgrepfile in ~/.longjobs/*.pgrep; do
+            label="$(basename $pgrepfile .pgrep)"
+            query="$(head -1 $pgrepfile || true)"
+            if [[ -z "$query" ]]; then
+                continue
+            fi
+            count=$(pgrep "$query" | wc -l);
+            if [[ "$count" -ne "0" ]]; then
+                accumulate "$label" $count
+            fi
+        done
+    fi
+}
+
+watch_all() {
+    # Clear the accumulator
+    echo -n "" > ~/.longjobs/accumulator
+
+    watch_pids
+    watch_pgreps
+
+    # Print accumulated results
+    sort ~/.longjobs/accumulator | uniq -c
+}
+
+add_pid() {
+    SHOULD_OUTPUT_WATCH=0
+    if [[ -z "$1" || -z "$2" ]]; then
+        usage
+    fi
+    echo "$1" > ~/.longjobs/${2}.pid
+}
+
+add_pgrep() {
+    SHOULD_OUTPUT_WATCH=0
+    if [[ -z "$1" || -z "$2" ]]; then
+        usage
+    fi
+    echo "$1" > ~/.longjobs/${2}.pgrep
+}
+
+oneline_output() {
+    sed -e 's/^ *//' -e 's/^1 //' | tr '\n' ',' | sed -e 's/,$//' -e 's/,/, /g'
+    echo
+}
+
+process_options() {
+    while getopts ":hpgoc" opt; do
+        case $opt in
+            h)
+                usage;;
+            p)
+                add_pid "$2" "$3";
+                shift; shift;;
+            g)
+                add_pgrep "$2" "$3";
+                shift; shift;;
+            o)
+                ONELINE_OUTPUT=1;;
+            c)
+                clear_watches;;
+            \?)
+                usage;;
+        esac
+    done
+}
+
+main() {
+    process_options "$@"
+    if [[ "$SHOULD_OUTPUT_WATCH" -eq "1" ]]; then
+        if [[ "$ONELINE_OUTPUT" -eq "1" ]]; then
+            watch_all | oneline_output
+        else
+            watch_all
+        fi
+    fi
+}
+
+main "$@"
