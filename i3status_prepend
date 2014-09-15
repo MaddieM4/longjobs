@@ -46,6 +46,8 @@ if __name__ == '__main__':
 
         j = json.loads(line)
         # Insert data at front of bar
-        j.insert(0, {'full_text' : '%s' % get_jobs(), 'name' : 'jobs', 'color':'#FF0000'})
+        jobs_data = get_jobs()
+        if jobs_data:
+            j.insert(0, {'full_text' : jobs_data, 'name' : 'jobs', 'color':'#FF0000'})
         # and echo back new encoded json
         print_line(prefix+json.dumps(j))
