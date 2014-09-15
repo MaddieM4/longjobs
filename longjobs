@@ -12,6 +12,10 @@ USAGE:
   longjobs -c                     # Clear all watches
   longjobs -o                     # Print with one-line output
   longjobs -a                     # Print raw accumulator output (under the hood stuff)
+  longjobs -d 5                   # Run as daemon, refreshing every 5 seconds
+
+Be sure to have a daemon running to produce the data. The other commands just read
+out the latest finished results. If nobody's cooking, there's nothing to eat.
 EOF
     exit 1
 }
@@ -28,19 +32,26 @@ if [[ ! -e ~/.longjobs/acc ]]; then
     rm -f ~/.longjobs/accumulator
 fi
 
-# Determine which accumulator to use
-OLD_ACCUMULATOR=$(readlink -f ~/.longjobs/acc)
-if [[ "$(basename $OLD_ACCUMULATOR)" = "acc.a" ]]; then
-    NEW_ACCUMULATOR="$HOME/.longjobs/acc.b"
-else
-    NEW_ACCUMULATOR="$HOME/.longjobs/acc.a"
-fi
-echo "OLD_ACCUMULATOR: $OLD_ACCUMULATOR" >&2
-echo "NEW_ACCUMULATOR: $NEW_ACCUMULATOR" >&2
-
 # Set default options.
 SHOULD_OUTPUT_WATCH=1
 ONELINE_OUTPUT=0
+
+determine_accumulator() {
+    OLD_ACCUMULATOR=$(readlink -f ~/.longjobs/acc)
+    if [[ "$(basename $OLD_ACCUMULATOR)" = "acc.a" ]]; then
+        NEW_ACCUMULATOR="$HOME/.longjobs/acc.b"
+    else
+        NEW_ACCUMULATOR="$HOME/.longjobs/acc.a"
+    fi
+}
+
+swap_accumulator() {
+    ln -sf $NEW_ACCUMULATOR ~/.longjobs/acc
+}
+
+clear_accumulator() {
+    echo -n '' > $NEW_ACCUMULATOR
+}
 
 # Function to add a single label to accumulator N times
 accumulate() {
@@ -94,15 +105,14 @@ watch_pgreps() {
     fi
 }
 
-watch_all() {
-    # Clear the accumulator
-    echo -n "" > $NEW_ACCUMULATOR
+accumulate_all() {
+    determine_accumulator
+    clear_accumulator
 
     watch_pids
     watch_pgreps
 
-    # Print accumulated results
-    sort $NEW_ACCUMULATOR | uniq -c
+    swap_accumulator
 }
 
 add_pid() {
@@ -121,6 +131,12 @@ add_pgrep() {
     echo "$1" > ~/.longjobs/${2}.pgrep
 }
 
+produce_output() {
+    # Print accumulated results
+    determine_accumulator
+    sort $OLD_ACCUMULATOR | uniq -c
+}
+
 oneline_output() {
     line=$(sed -e 's/^ *//' -e 's/^1 //' | tr '\n' ',' | sed -e 's/,$//' -e 's/,/, /g')
     if [[ -n "$line" ]]; then
@@ -130,11 +146,27 @@ oneline_output() {
 
 print_accumulator() {
     SHOULD_OUTPUT_WATCH=0
-    cat $NEW_ACCUMULATOR
+    determine_accumulator
+    cat $OLD_ACCUMULATOR
+}
+
+daemon_mode() {
+    SHOULD_OUTPUT_WATCH=0
+    sleep_time="$1"; shift;
+    if [[ -z "$sleep_time" ]]; then
+        sleep_time=5
+    fi
+
+    echo "Running in daemon mode"
+    while :
+    do
+        accumulate_all
+        sleep $sleep_time
+    done
 }
 
 process_options() {
-    while getopts ":hpgoac" opt; do
+    while getopts ":hpgoacd" opt; do
         case $opt in
             h)
                 usage;;
@@ -150,6 +182,9 @@ process_options() {
                 print_accumulator;;
             c)
                 clear_watches;;
+            d)
+                daemon_mode "$2";
+                shift;;
             \?)
                 usage;;
         esac
@@ -160,9 +195,9 @@ main() {
     process_options "$@"
     if [[ "$SHOULD_OUTPUT_WATCH" -eq "1" ]]; then
         if [[ "$ONELINE_OUTPUT" -eq "1" ]]; then
-            watch_all | oneline_output
+            produce_output | oneline_output
         else
-            watch_all
+            produce_output
         fi
     fi
 }

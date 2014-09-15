@@ -12,6 +12,10 @@ A little something I cooked up for my i3 status bar. At some point I may add not
       longjobs -c                     # Clear all watches
       longjobs -o                     # Print with one-line output
       longjobs -a                     # Print raw accumulator output (under the hood stuff)
+      longjobs -d 5                   # Run as daemon, refreshing every 5 seconds
+
+    Be sure to have a daemon running to produce the data. The other commands just read
+    out the latest finished results. If nobody's cooking, there's nothing to eat.
 
 The normal output is pretty good for general shell usage. The one-line output is good for status bars.
 
