@@ -11,6 +11,7 @@ USAGE:
   longjobs -g nix-build nix-build # Add a pgrep watch
   longjobs -c                     # Clear all watches
   longjobs -o                     # Print with one-line output
+  longjobs -a                     # Print raw accumulator output (under the hood stuff)
 EOF
     exit 1
 }
@@ -110,8 +111,13 @@ oneline_output() {
     fi
 }
 
+print_accumulator() {
+    SHOULD_OUTPUT_WATCH=0
+    cat ~/.longjobs/accumulator
+}
+
 process_options() {
-    while getopts ":hpgoc" opt; do
+    while getopts ":hpgoac" opt; do
         case $opt in
             h)
                 usage;;
@@ -123,6 +129,8 @@ process_options() {
                 shift; shift;;
             o)
                 ONELINE_OUTPUT=1;;
+            a)
+                print_accumulator;;
             c)
                 clear_watches;;
             \?)

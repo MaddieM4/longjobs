@@ -11,6 +11,7 @@ A little something I cooked up for my i3 status bar. At some point I may add not
       longjobs -g nix-build nix       # Add a pgrep watch for 'nix-build' processes
       longjobs -c                     # Clear all watches
       longjobs -o                     # Print with one-line output
+      longjobs -a                     # Print raw accumulator output (under the hood stuff)
 
 The normal output is pretty good for general shell usage. The one-line output is good for status bars.
 
