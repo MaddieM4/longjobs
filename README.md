@@ -18,6 +18,18 @@ As you can see, longjobs has two styles of watches: pid, and pgrep. A pid watch 
 
 The output tallies up all processes found, and groups them by label. The one-line output omits the '1' for labels where only 1 was found.
 
+## tmux integration
+
+Something to be aware of: tmux really does not query external scripts very often. This is configureable, but I figure, just leave it be, enjoy the efficiency, and don't use longjobs for jobs that aren't long.
+
+I prefer to have the output on the right side of my status line. I'm mostly a default guy, so my config looks like this:
+
+    # Set up right side of status bar
+    set -g status-right-length 40
+    set -g status-right "#[bg=black,fg=red]#(longjobs -o)#[default] \"#22T\" %H:%M %d-%b-%y"
+
+This gives me a little extra room, since I usually use tmux on a screen-wide window anyways, and prints all my `longjobs -o` output on the front of my status-right, in red-on-black text. Everything after that (`\"#22T\" %H:%M %d-%b-%y"`) is the default tmux status-right.
+
 ## Using the i3status_prepend script
 
 1. Install longjobs.
