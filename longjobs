@@ -21,6 +21,23 @@ if [[ ! -d ~/.longjobs ]]; then
     mkdir ~/.longjobs
 fi
 
+# Set up new accumulator system if necessary
+if [[ ! -e ~/.longjobs/acc ]]; then
+    touch ~/.longjobs/acc.a
+    ln -sf ~/.longjobs/acc.a ~/.longjobs/acc
+    rm -f ~/.longjobs/accumulator
+fi
+
+# Determine which accumulator to use
+OLD_ACCUMULATOR=$(readlink -f ~/.longjobs/acc)
+if [[ "$(basename $OLD_ACCUMULATOR)" = "acc.a" ]]; then
+    NEW_ACCUMULATOR="$HOME/.longjobs/acc.b"
+else
+    NEW_ACCUMULATOR="$HOME/.longjobs/acc.a"
+fi
+echo "OLD_ACCUMULATOR: $OLD_ACCUMULATOR" >&2
+echo "NEW_ACCUMULATOR: $NEW_ACCUMULATOR" >&2
+
 # Set default options.
 SHOULD_OUTPUT_WATCH=1
 ONELINE_OUTPUT=0
@@ -30,7 +47,7 @@ accumulate() {
     label="$1"; shift
     count="$1"; shift
     while [[ $count -gt 0 ]]; do
-        echo "$label" >> ~/.longjobs/accumulator
+        echo "$label" >> $NEW_ACCUMULATOR
         count=$(( count-1 ));
     done
 }
@@ -79,13 +96,13 @@ watch_pgreps() {
 
 watch_all() {
     # Clear the accumulator
-    echo -n "" > ~/.longjobs/accumulator
+    echo -n "" > $NEW_ACCUMULATOR
 
     watch_pids
     watch_pgreps
 
     # Print accumulated results
-    sort ~/.longjobs/accumulator | uniq -c
+    sort $NEW_ACCUMULATOR | uniq -c
 }
 
 add_pid() {
@@ -113,7 +130,7 @@ oneline_output() {
 
 print_accumulator() {
     SHOULD_OUTPUT_WATCH=0
-    cat ~/.longjobs/accumulator
+    cat $NEW_ACCUMULATOR
 }
 
 process_options() {
