@@ -7,7 +7,7 @@ A little something I cooked up for my i3 status bar. At some point I may add not
     USAGE:
       longjobs                        # Print a list of running jobs
       longjobs -h                     # Show this message
-      longjobs -p 4598 name           # Add a pid watch with label 'name'
+      longjobs -p name 4567           # Add a pid watch with a name
       longjobs -g nix-build nix       # Add a pgrep watch for 'nix-build' processes
       longjobs -c                     # Clear all watches
       longjobs -o                     # Print with one-line output

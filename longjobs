@@ -7,7 +7,7 @@ usage() {
 USAGE:
   longjobs                        # Print a list of running jobs
   longjobs -h                     # Show this message
-  longjobs -p 4598 name           # Add a pid watch with a name
+  longjobs -p name 4567           # Add a pid watch with a name
   longjobs -g nix-build nix-build # Add a pgrep watch
   longjobs -c                     # Clear all watches
   longjobs -o                     # Print with one-line output
@@ -23,6 +23,7 @@ EOF
 # Create directory if it doesn't exist
 if [[ ! -d ~/.longjobs ]]; then
     mkdir ~/.longjobs
+    mkdir ~/.longjobs/tasks/
 fi
 
 # Set up new accumulator system if necessary
@@ -66,43 +67,46 @@ accumulate() {
 # Remove all watchfiles.
 clear_watches() {
     SHOULD_OUTPUT_WATCH=0
-    rm -f ~/.longjobs/*.pid
-    rm -f ~/.longjobs/*.pgrep
+    echo -n "" > ~/.longjobs/tasks/pid
+    echo -n "" > ~/.longjobs/tasks/pgrep
     echo "All watches cleared"
 }
 
 # Process PID watches
-watch_pids() {
-    if [[ -n $(find ~/.longjobs/ -name '*.pid') ]]; then
-        for pidfile in ~/.longjobs/*.pid; do
-            # echo "testing pidfile $pidfile" >&2
-            label="$(basename $pidfile .pid)"
-            pid=$(head -1 $pidfile | grep -o '[[:digit:]]\+' || true)
-            if [[ -z "$pid" ]]; then
-                continue
-            fi
-            if (ps "$pid" > /dev/null); then
-                accumulate "$label" 1
-            fi
-        done
+watch_pid() {
+    label="$1"
+    pid="$2"
+    if [[ "$pid" =~ ^[0-9]+$ ]] && (ps "$pid" > /dev/null); then
+        accumulate "$label" 1
     fi
+}
+watch_pids() {
+    touch ~/.longjobs/tasks/pid
+    while read line; do
+        local IFS=':	'
+        set $line
+        watch_pid "$@"
+    done < ~/.longjobs/tasks/pid
 }
 
 # Process pgrep watches
-watch_pgreps() {
-    if [[ -n $(find ~/.longjobs/ -name '*.pgrep') ]]; then
-        for pgrepfile in ~/.longjobs/*.pgrep; do
-            label="$(basename $pgrepfile .pgrep)"
-            query="$(head -1 $pgrepfile || true)"
-            if [[ -z "$query" ]]; then
-                continue
-            fi
-            count=$(pgrep "$query" | wc -l);
-            if [[ "$count" -ne "0" ]]; then
-                accumulate "$label" $count
-            fi
-        done
+watch_pgrep() {
+    label="$1"
+    query="$2"
+    if [[ -n "$query" ]]; then
+        count=$(pgrep "$query" | wc -l)
+        if [[ $count -ne 0 ]]; then
+            accumulate "$label" "$count"
+        fi
     fi
+}
+watch_pgreps() {
+    touch ~/.longjobs/tasks/pgrep
+    while read line; do
+        local IFS=':	'
+        set $line
+        watch_pgrep "$@"
+    done < ~/.longjobs/tasks/pgrep
 }
 
 accumulate_all() {
@@ -120,7 +124,7 @@ add_pid() {
     if [[ -z "$1" || -z "$2" ]]; then
         usage
     fi
-    echo "$1" > ~/.longjobs/${2}.pid
+    echo -e "$1:\t$2" >> ~/.longjobs/tasks/pid
 }
 
 add_pgrep() {
@@ -128,7 +132,7 @@ add_pgrep() {
     if [[ -z "$1" || -z "$2" ]]; then
         usage
     fi
-    echo "$1" > ~/.longjobs/${2}.pgrep
+    echo -e "$1:\t$2" >> ~/.longjobs/tasks/pgrep
 }
 
 produce_output() {
