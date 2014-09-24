@@ -72,6 +72,19 @@ clear_watches() {
     echo "All watches cleared"
 }
 
+watch_group() {
+    local group="$1"
+    local path="$HOME/.longjobs/tasks/$group"
+    local handler="watch_$group"
+
+    touch $path
+    while read line; do
+        local IFS=':	'
+        set $line
+        $handler "$@"
+    done < $path
+}
+
 # Process PID watches
 watch_pid() {
     label="$1"
@@ -79,14 +92,6 @@ watch_pid() {
     if [[ "$pid" =~ ^[0-9]+$ ]] && (ps "$pid" > /dev/null); then
         accumulate "$label" 1
     fi
-}
-watch_pids() {
-    touch ~/.longjobs/tasks/pid
-    while read line; do
-        local IFS=':	'
-        set $line
-        watch_pid "$@"
-    done < ~/.longjobs/tasks/pid
 }
 
 # Process pgrep watches
@@ -100,21 +105,21 @@ watch_pgrep() {
         fi
     fi
 }
-watch_pgreps() {
-    touch ~/.longjobs/tasks/pgrep
-    while read line; do
-        local IFS=':	'
-        set $line
-        watch_pgrep "$@"
-    done < ~/.longjobs/tasks/pgrep
+
+# Process remote watches
+watch_remote() {
+    host="$1"
+    prefix="$2"
+    echo "Remote query: $host (prefix $prefix)"
 }
 
 accumulate_all() {
     determine_accumulator
     clear_accumulator
 
-    watch_pids
-    watch_pgreps
+    watch_group pid
+    watch_group pgrep
+    watch_group remote
 
     swap_accumulator
 }
