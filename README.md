@@ -24,6 +24,24 @@ As you can see, longjobs has two styles of watches: pid, and pgrep. A pid watch 
 
 The output tallies up all processes found, and groups them by label. The one-line output omits the '1' for labels where only 1 was found.
 
+## Remote connections
+
+The daemon can watch not only local processes, but other machines as well. It's just a matter of installing longjobs on the other matchine, making sure you can SSH to it without passwords, and customizing the watches on the remote host using normal commands.
+
+This runs certain 'ssh' commands repeatedly. It's fine for local guest VMs, but for truly remote machines, I highly recommend using [multiplexed master connections](http://www.linuxjournal.com/content/speed-multiple-ssh-connections-same-server), so that under the hood, all the new SSH sessions take place over the same long-running TCP connection.
+
+The "prefix" argument allows you to prefix all labels coming from the remote machine, with a single string. For example,
+
+    longjobs -r vm1 vm1-
+
+So that when there are labels accumulated on the machine 'vm1', they will show up on my host as:
+
+    longjobs
+          1 less
+          1 vm1-sync_resources
+
+You can easily see that the sync_resources task is running on the 'vm1' host, thanks to the handy prefix.
+
 ## tmux integration
 
 Something to be aware of: tmux really does not query external scripts very often. This is configureable, but I figure, just leave it be, enjoy the efficiency, and don't use longjobs for jobs that aren't long.
