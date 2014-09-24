@@ -9,6 +9,7 @@ USAGE:
   longjobs -h                     # Show this message
   longjobs -p name 4567           # Add a pid watch with a name
   longjobs -g nix-build nix-build # Add a pgrep watch
+  longjobs -r host prefix         # Add a remote watch
   longjobs -c                     # Clear all watches
   longjobs -o                     # Print with one-line output
   longjobs -a                     # Print raw accumulator output (under the hood stuff)
@@ -67,8 +68,7 @@ accumulate() {
 # Remove all watchfiles.
 clear_watches() {
     SHOULD_OUTPUT_WATCH=0
-    echo -n "" > ~/.longjobs/tasks/pid
-    echo -n "" > ~/.longjobs/tasks/pgrep
+    rm -f ~/.longjobs/tasks/*
     echo "All watches cleared"
 }
 
@@ -135,6 +135,14 @@ add_pgrep() {
     echo -e "$1:\t$2" >> ~/.longjobs/tasks/pgrep
 }
 
+add_remote() {
+    SHOULD_OUTPUT_WATCH=0
+    if [[ -z "$1" || -z "$2" ]]; then
+        usage
+    fi
+    echo -e "$1:\t$2" >> ~/.longjobs/tasks/remote
+}
+
 produce_output() {
     # Print accumulated results
     determine_accumulator
@@ -170,7 +178,7 @@ daemon_mode() {
 }
 
 process_options() {
-    while getopts ":hpgoacd" opt; do
+    while getopts ":hpgroacd" opt; do
         case $opt in
             h)
                 usage;;
@@ -179,6 +187,9 @@ process_options() {
                 shift; shift;;
             g)
                 add_pgrep "$2" "$3";
+                shift; shift;;
+            r)
+                add_remote "$2" "$3";
                 shift; shift;;
             o)
                 ONELINE_OUTPUT=1;;
