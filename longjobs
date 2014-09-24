@@ -110,7 +110,7 @@ watch_pgrep() {
 watch_remote() {
     host="$1"
     prefix="$2"
-    echo "Remote query: $host (prefix $prefix)"
+    ssh "$host" longjobs -a | sed -e "s/^/$prefix/" >> $NEW_ACCUMULATOR | true
 }
 
 accumulate_all() {
