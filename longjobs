@@ -77,7 +77,9 @@ watch_group() {
     local path="$HOME/.longjobs/tasks/$group"
     local handler="watch_$group"
 
-    touch $path
+    if [[ ! -f $path ]]; then
+        touch $path
+    fi
     while read line; do
         local IFS=':	'
         set $line
@@ -108,9 +110,10 @@ watch_pgrep() {
 
 # Process remote watches
 watch_remote() {
-    host="$1"
-    prefix="$2"
-    ssh "$host" longjobs -a | sed -e "s/^/$prefix/" >> $NEW_ACCUMULATOR | true
+    local host="$1"
+    local prefix="$2"
+    local IFS=$' \t\n'
+    ssh -n "$host" longjobs -a | sed -e "s/^/$prefix/" >> $NEW_ACCUMULATOR || true
 }
 
 accumulate_all() {
@@ -142,7 +145,7 @@ add_pgrep() {
 
 add_remote() {
     SHOULD_OUTPUT_WATCH=0
-    if [[ -z "$1" || -z "$2" ]]; then
+    if [[ -z "$1" ]]; then
         usage
     fi
     echo -e "$1:\t$2" >> ~/.longjobs/tasks/remote
