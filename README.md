@@ -32,11 +32,11 @@ This runs certain 'ssh' commands repeatedly. It's fine for local guest VMs, but 
 
 The "prefix" argument allows you to prefix all labels coming from the remote machine, with a single string. For example,
 
-    longjobs -r vm1 vm1-
+    $ longjobs -r vm1 vm1-
 
 So that when there are labels accumulated on the machine 'vm1', they will show up on my host as:
 
-    longjobs
+    $ longjobs
           1 less
           1 vm1-sync_resources
 
