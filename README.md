@@ -10,6 +10,7 @@ A little something I cooked up for my i3 status bar. At some point I may add not
       longjobs -p name 4567           # Add a pid watch with a name
       longjobs -g nix-build nix       # Add a pgrep watch for 'nix-build' processes
       longjobs -r host prefix         # Add a remote watch
+      longjobs -w label command...    # Execute a command, watching with given label
       longjobs -c                     # Clear all watches
       longjobs -o                     # Print with one-line output
       longjobs -a                     # Print raw accumulator output (under the hood stuff)

@@ -10,6 +10,7 @@ USAGE:
   longjobs -p name 4567           # Add a pid watch with a name
   longjobs -g nix-build nix-build # Add a pgrep watch
   longjobs -r host prefix         # Add a remote watch
+  longjobs -w label command...    # Execute a command, watching with given label
   longjobs -c                     # Clear all watches
   longjobs -o                     # Print with one-line output
   longjobs -a                     # Print raw accumulator output (under the hood stuff)
@@ -151,6 +152,13 @@ add_remote() {
     echo -e "$1:\t$2" >> ~/.longjobs/tasks/remote
 }
 
+watch_new_command() {
+    local label="$1"; shift;
+
+    add_pid "$label" $$
+    exec "$@"
+}
+
 produce_output() {
     # Print accumulated results
     determine_accumulator
@@ -186,7 +194,7 @@ daemon_mode() {
 }
 
 process_options() {
-    while getopts ":hpgroacd" opt; do
+    while getopts ":hpgrwoacd" opt; do
         case $opt in
             h)
                 usage;;
@@ -199,6 +207,8 @@ process_options() {
             r)
                 add_remote "$2" "$3";
                 shift; shift;;
+            w)
+                shift; watch_new_command "$@";;
             o)
                 ONELINE_OUTPUT=1;;
             a)
